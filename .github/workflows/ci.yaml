@@ -1,0 +1,57 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.14'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        #pip install requests
+
+    - name: Create dummy files for tests
+      run: |
+        mkdir -p httptest/dir1/dir12/dir123
+        mkdir -p httptest/dir2
+        
+        echo "<html>Directory index file</html>" > httptest/dir2/index.html
+        echo "<html><body>Page Sample</body></html>" > httptest/dir2/page.html
+        echo "letters and spaces" > "httptest/space in name.txt"
+        echo "hello" > httptest/text.txt
+        
+        dd if=/dev/zero of=httptest/wikipedia_russia.html bs=1 count=954824
+        dd if=/dev/zero of=httptest/splash.css bs=1 count=98620
+        dd if=/dev/zero of=httptest/jquery-1.9.1.js bs=1 count=268381
+        dd if=/dev/zero of=httptest/160313.jpg bs=1 count=267037
+        dd if=/dev/zero of=httptest/ef35c.jpeg bs=1 count=160462
+        dd if=/dev/zero of=httptest/logo.v2.png bs=1 count=1754
+        dd if=/dev/zero of=httptest/pic_ask.gif bs=1 count=1747
+        dd if=/dev/zero of=httptest/b16261023.swf bs=1 count=35344
+
+    - name: Start HTTP Server
+      run: |
+        python httpd.py -r ./ &
+        echo $! > server.pid
+        sleep 2
+
+    - name: Run Tests
+      run: |
+        python http-test-suite/httptest.py
+
+    - name: Stop Server
+      if: always()
+      run: |
+        kill $(cat server.pid) || true
